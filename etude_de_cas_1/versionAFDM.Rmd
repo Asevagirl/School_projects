@@ -1,0 +1,767 @@
+---
+title: "Étude de cas 1"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+# Needed libraries
+library("FactoMineR",lib.loc="~/anaconda3/envs/tried/lib/R/library")
+library("factoextra", lib.loc="~/anaconda3/envs/tried/lib/R/library")
+library("olsrr", lib.loc="~/anaconda3/envs/tried/lib/R/library")
+library("e1071", lib.loc="~/anaconda3/envs/tried/lib/R/library")
+library("Metrics", lib.loc="~/anaconda3/envs/tried/lib/R/library")
+library("caret", lib.loc="~/anaconda3/envs/tried/lib/R/library")
+
+```
+
+
+```{r, include=TRUE}
+Quali <- read.delim("~/Bureau/Etude de cas 1/donnees/CNL_Qualitatives_No_NAN.xls")
+Quanti<- read.delim("~/Bureau/Etude de cas 1/donnees/CNL_Quantitatives_No_NAN.xls")
+Polluant <- read.delim("~/Bureau/Etude de cas 1/donnees/Polluant-5.txt")
+```
+
+
+```{r}
+#types TRANSFORMATION
+
+
+for (i in 1:length(Quanti$MATER2)){
+   if (Quanti$MATER2[i]==1){
+     Quanti$MATER2[i]<-"mur_1matos"
+   }
+  else {
+    if (Quanti$MATER2[i]==2){
+     Quanti$MATER2[i]<-"mur_2matos"
+    }
+    else {
+      Quanti$MATER2[i]<-"mur_3matos"
+    }
+  }
+}
+Quanti$MATER2 <-NULL
+Quanti$NPVe1 <- NULL
+Quanti$HSRF <- NULL
+
+logement_Quanti <- Quanti[,c(2:31)]
+
+
+
+
+```
+
+```{r, include=TRUE}
+for (i in 1:length(Quali$ACTP1)){
+   if (Quali$ACTP1[i]==1){
+     Quali$ACTP1[i]<-"acti_pro"
+   }
+  else {
+    Quali$ACTP1[i]<-"no_acti_pro"
+  }
+}
+for (i in 1:length(Quali$CHEM1)){
+   if (Quali$CHEM1[i]==1){
+     Quali$CHEM1[i]<-"avec_chem"
+   }
+  else {
+    Quali$CHEM1[i]<-"sans_chem"
+  }
+}
+for (i in 1:length(Quali$DBRI)){
+   if (Quali$DBRI[i]==1){
+     Quali$DBRI[i]<-"lieu_brico_coller"
+   }
+  else {
+    if (Quali$DBRI[i]==2){
+     Quali$DBRI[i]<-"lieu_brico_non_coller"
+    }
+    else {
+      Quali$DBRI[i]<-"sans_lieu_brico_coller"
+    }
+  }
+}
+for (i in 1:length(Quali$DCA3e1)){
+   if (Quali$DCA3e1[i]==1){
+     Quali$DCA3e1[i]<-"cave_comm"
+   }
+  else {
+    if (Quali$DCA3e1[i]==2){
+     Quali$DCA3e1[i]<-"cave_non_comm"
+    }
+    else {
+      Quali$DCA3e1[i]<-"sans_cave"
+    }
+  }
+}
+
+for (i in 1:length(Quali$DGG2be1)){
+   if (Quali$DGG2be1[i]==1){
+     Quali$DGG2be1[i]<-"garage_attenant"
+   }
+  else {
+    if (Quali$DGG2be1[i]==2){
+     Quali$DGG2be1[i]<-"garage_non_attenant"
+    }
+    else {
+      Quali$DGG2be1[i]<-"sans_garage"
+    }
+  }
+}
+
+for (i in 1:length(Quali$FC316)){
+   if (Quali$FC316[i]==1){
+     Quali$FC316[i]<-"maison/ferme"
+   }
+  else {
+    Quali$FC316[i]<-"autres_types_logements"
+  }
+}
+
+for (i in 1:length(Quali$FC812)){
+   if (Quali$FC812[i]==1){
+     Quali$FC812[i]<-"fermier/proprio"
+   }
+  else {
+    Quali$FC812[i]<-"locataire/loge_gratis"
+  }
+}
+
+for (i in 1:length(Quali$FC9be11)){
+   if (Quali$FC9be11[i]==1){
+     Quali$FC9be11[i]<-"HLM"
+   }
+  else {
+    Quali$FC9be11[i]<-"no_HLM"
+  }
+}
+
+for (i in 1:length(Quali$FC9be12347)){
+   if (Quali$FC9be12347[i]==1){
+     Quali$FC9be12347[i]<-"entreprise_assos_autres"
+   }
+  else {
+    Quali$FC9be12347[i]<-"no_entreprise_assos_autres"
+  }
+}
+
+for (i in 1:length(Quali$FC9be156)){
+   if (Quali$FC9be156[i]==1){
+     Quali$FC9be156[i]<-"famille_particulier"
+   }
+  else {
+    Quali$FC9be156[i]<-"no_famille_particulier"
+  }
+}
+
+for (i in 1:length(Quali$HCU11)){
+   if (Quali$HCU11[i]==1){
+     Quali$HCU11[i]<-"cuisine_fermee"
+   }
+  else {
+    Quali$HCU11[i]<-"autres_types_cuisine"
+  }
+}
+
+for (i in 1:length(Quali$HCU31)){
+   if (Quali$HCU31[i]==1){
+     Quali$HCU31[i]<-"hotte_recycle_air"
+   }
+  else {
+    Quali$HCU31[i]<-"no_hotte_recycle_air"
+  }
+}
+for (i in 1:length(Quali$HCU323)){
+   if (Quali$HCU323[i]==1){
+     Quali$HCU323[i]<-"hotte_rejet_extr"
+   }
+  else {
+    Quali$HCU323[i]<-"no_hotte_rejet_ext"
+  }
+}
+
+for (i in 1:length(Quali$HCU34)){
+   if (Quali$HCU34[i]==1){
+     Quali$HCU34[i]<-"pas_hotte"
+   }
+  else {
+    Quali$HCU34[i]<-"avec_hotte"
+  }
+}
+
+for (i in 1:length(Quali$HPLBO)){
+   if (Quali$HPLBO[i]==1){
+     Quali$HPLBO[i]<-"plancher_pb_bois"
+   }
+  else {
+    Quali$HPLBO[i]<-"plancher_pb_beton/autres"
+  }
+}
+for (i in 1:length(Quali$KCC1be1089)){
+   if (Quali$KCC1be1089[i]==1){
+     Quali$KCC1be1089[i]<-"chauff_elec/autres"
+   }
+  else {
+    Quali$KCC1be1089[i]<-"no_chauff_elec/autres"
+  }
+}
+for (i in 1:length(Quali$KCC1be11)){
+   if (Quali$KCC1be11[i]==1){
+     Quali$KCC1be11[i]<-"chauff_fioul"
+   }
+  else {
+    Quali$KCC1be11[i]<-"no_chauff_fioul"
+  }
+}
+for (i in 1:length(Quali$KCC1be1234)){
+   if (Quali$KCC1be1234[i]==1){
+     Quali$KCC1be1234[i]<-"chauff_gaz"
+   }
+  else {
+    Quali$KCC1be1234[i]<-"no_chauff_gaz"
+  }
+}
+
+for (i in 1:length(Quali$KCC1be1567)){
+   if (Quali$KCC1be1567[i]==1){
+     Quali$KCC1be1567[i]<-"chauff_bois/charbon"
+   }
+  else {
+    Quali$KCC1be1567[i]<-"no_bois/charbon"
+  }
+}
+Quali$KCC1be1555 <-NULL
+
+for (i in 1:length(Quali$KCC267)){
+   if (Quali$KCC267[i]==1){
+     Quali$KCC267[i]<-"chauff_collectif"
+   }
+  else {
+    Quali$KCC267[i]<-"no_chauff_collectif"
+  }
+}
+
+for (i in 1:length(Quali$KCC34)){
+   if (Quali$KCC34[i]==1){
+     Quali$KCC34[i]<-"chauff_elect"
+   }
+  else {
+    Quali$KCC34[i]<-"no_chauff_elect"
+  }
+}
+
+for (i in 1:length(Quali$KCC5)){
+   if (Quali$KCC5[i]==1){
+     Quali$KCC5[i]<-"chauff_indiv"
+   }
+  else {
+    Quali$KCC5[i]<-"no_chauff_indiv"
+  }
+}
+
+for (i in 1:length(Quali$KEIU1)){
+   if (Quali$KEIU1[i]==1){
+     Quali$KEIU1[i]<-"chauff_eau_sans_balon"
+   }
+  else {
+    Quali$KEIU1[i]<-"no_chauff_eau_sans_balon"
+  }
+}
+
+for (i in 1:length(Quali$KEIU2)){
+   if (Quali$KEIU2[i]==1){
+     Quali$KEIU2[i]<-"chauff_eau_avec_balon"
+   }
+  else {
+    Quali$KEIU2[i]<-"no_chauff_eau_avec_balon"
+  }
+}
+
+
+for (i in 1:length(Quali$KVNT2e111)){
+   if (Quali$KVNT2e111[i]==1){
+     Quali$KVNT2e111[i]<-"venti_méca_simple"
+   }
+  else {
+    Quali$KVNT2e111[i]<-"no_venti_méca_simple"
+  }
+}
+
+for (i in 1:length(Quali$KVNT2e112)){
+   if (Quali$KVNT2e112[i]==1){
+     Quali$KVNT2e112[i]<-"venti_méca_double"
+   }
+  else {
+    Quali$KVNT2e112[i]<-"no_venti_méca_double"
+  }
+}
+
+
+for (i in 1:length(Quali$KVNT2e12)){
+   if (Quali$KVNT2e12[i]==1){
+     Quali$KVNT2e12[i]<-"moteur_venti"
+   }
+  else {
+    Quali$KVNT2e12[i]<-"no_moteur_venti"
+  }
+}
+
+for (i in 1:length(Quali$KVNT2e13)){
+   if (Quali$KVNT2e13[i]==1){
+     Quali$KVNT2e13[i]<-"aeration_conduit/grille"
+   }
+  else {
+    Quali$KVNT2e13[i]<-"no_aeration_conduit/grille"
+  }
+}
+
+for (i in 1:length(Quali$KVNT2e14)){
+   if (Quali$KVNT2e14[i]==1){
+     Quali$KVNT2e14[i]<-"no_aeration"
+   }
+  else {
+    Quali$KVNT2e14[i]<-"avec_aeration"
+  }
+}
+
+
+for (i in 1:length(Quali$MATER017)){
+   if (Quali$MATER017[i]==1){
+     Quali$MATER017[i]<-"murs_princ_bois"
+   }
+  else {
+    Quali$MATER017[i]<-"no_murs_princ_bois"
+  }
+}
+
+for (i in 1:length(Quali$MATER056)){
+   if (Quali$MATER056[i]==1){
+     Quali$MATER056[i]<-"murs_princ_pierre"
+   }
+  else {
+    Quali$MATER056[i]<-"no_murs_princ_pierre"
+  }
+}
+
+
+
+for (i in 1:length(Quali$MATER02)){
+   if (Quali$MATER02[i]==1){
+     Quali$MATER02[i]<-"murs_princ_brique"
+   }
+  else {
+    Quali$MATER02[i]<-"no_murs_princ_brique"
+  }
+}
+
+
+for (i in 1:length(Quali$MATER03)){
+   if (Quali$MATER03[i]==1){
+     Quali$MATER03[i]<-"murs_princ_beton"
+   }
+  else {
+    Quali$MATER03[i]<-"no_murs_princ_beton"
+  }
+}
+
+for (i in 1:length(Quali$MATER04)){
+   if (Quali$MATER04[i]==1){
+     Quali$MATER04[i]<-"murs_princ_parpaing"
+   }
+  else {
+    Quali$MATER04[i]<-"no_murs_princ_parpaing"
+  }
+}
+
+for (i in 1:length(Quali$REAB1)){
+   if (Quali$REAB1[i]==1){
+     Quali$REAB1[i]<-"renov-5ans"
+   }
+  else {
+    Quali$REAB1[i]<-"no_renov-5ans"
+  }
+}
+for (i in 1:length(Quali$REAB23)){
+   if (Quali$REAB23[i]==1){
+     Quali$REAB23[i]<-"renov+5ans"
+   }
+  else {
+    Quali$REAB23[i]<-"no_renov+5ans"
+  }
+}
+
+for (i in 1:length(Quali$Fumeurs.FUMEURn)){
+   if (Quali$Fumeurs.FUMEURn[i]==1){
+     Quali$Fumeurs.FUMEURn[i]<-"aucun_fumeurs"
+   }
+  else {
+       if (Quali$Fumeurs.FUMEURn[i]==2){
+         Quali$Fumeurs.FUMEURn[i]<-"pas_de_fumeurs_iterieur"
+       }
+       else{
+           if (Quali$Fumeurs.FUMEURn[i]==3){
+             Quali$Fumeurs.FUMEURn[i]<-"un_fumeur"
+           }
+            else {
+              Quali$Fumeurs.FUMEURn[i]<-"plus_de_un_fumeur"
+              
+            }
+         
+       }
+   }
+    
+    
+  }
+
+
+for (i in 1:length(Quali$REAB4)){
+   if (Quali$REAB4[i]==1){
+     Quali$REAB4[i]<-"jamais_renov"
+   }
+  else {
+    Quali$REAB4[i]<-"renov"
+  }
+}
+
+for (x in 1:68){
+  Quali[,x] <- as.factor(Quali[,x])
+
+}
+Quali$ACTP1 <-NULL
+Quali$FC812 <-NULL
+Quali$FC316 <-NULL
+Quali$FC9be11 <-NULL
+Quali$FC9be12347 <-NULL
+Quali$FC9be156 <-NULL
+Quali$KCC267 <-NULL
+Quali$KCC34 <-NULL
+Quali$KCC5 <-NULL
+Quali$KEIU1<-NULL
+logement_Quali <- Quali[,c(2:29,37)]
+
+```
+```{r, include=TRUE}
+
+logement_Quali=as.data.frame(logement_Quali)
+logement_Quanti = as.data.frame(logement_Quanti)
+```
+
+
+```{r}
+#Creating  data for the study
+study <- merge(logement_Quali, logement_Quanti, by.x = "idn.lieu", by.y ="Idn_lieu")
+rownames(study) <- study$idn.lieu
+study$idn.lieu<-NULL
+```
+
+```{r}
+colnames(study)
+```
+
+
+Study of the data according to the hypothisis of the existance of different types of houses:
+Doing a FAMD to analyse simulitude of houses using all types of data.
+
+```{r}
+res.famd <- FAMD(study, ncp =200, graph = TRUE)
+```
+
+Proportion of variance explained by dimensions.
+```{r}
+eig.val <- get_eigenvalue(res.famd)
+head(eig.val)
+fviz_screeplot(res.famd)
+```
+Contribution ; qualtyof représentation ; new coordinate's system
+```{r}
+var <- get_famd_var (res.famd)
+# Coordonnées des variables
+head(var$coord)
+# Cos2: qualité de représentation
+head(var$cos2)
+# Contributions aux dimensions
+head(var$contrib)
+```
+
+```{r}
+# Graphique des variables
+fviz_famd_var (res.famd, repel = TRUE)
+
+```
+Contribution aux 2 premiers axes. 
+```{r}
+# Contribution à la première dimension
+fviz_contrib (res.famd, "var", axes = 1)
+# Contribution à la deuxième dimension
+fviz_contrib (res.famd, "var", axes = 2)
+```
+results for quanti variables 
+```{r}
+quanti.var <- get_famd_var(res.famd, "quanti.var")
+quanti.var 
+```
+Corrélation circul
+```{r}
+fviz_famd_var(res.famd, "quanti.var", repel = TRUE,
+              col.var = "black")
+```
+Coloration according to the cotribution
+```{r}
+fviz_famd_var(res.famd, "quanti.var", col.var = "contrib", 
+             gradient.cols = c("#00ABBB", "#E7B700", "#FC1E07"),
+             repel = TRUE)
+```
+Coloration according to thequality of representation 
+```{r}
+fviz_famd_var(res.famd, "quanti.var", col.var = "cos2",
+             gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"), 
+             repel = TRUE,select.var = list(name = NULL,cos2 = 0.25, contrib = NULL))
+```
+Results for quanti variables 
+```{r}
+quali.var <- get_famd_var(res.famd, "quali.var")
+quali.var 
+```
+
+```{r}
+fviz_famd_var(res.famd, "quali.var", col.var = "contrib", 
+             gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"), select.var  = list(name = NULL,cos2 = NULL, contrib =10))
+```
+
+Individus
+```{r}
+ind <- get_famd_ind(res.famd)
+fviz_famd_ind(res.famd, gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
+             repel = TRUE)
+```
+Classification hérarchique 
+```{r}
+t = res.famd$ind$coord
+res.hcpc <- HCPC (t, nb.cluster=0 ,graph = TRUE, consol=TRUE,description=FALSE)
+```
+```{r}
+get_clust_tendency(t,n=500, graph = TRUE, gradient = list(low = "red",mid = "white", high = "blue"), seed = 123)
+```
+
+```{r}
+fviz_cluster(t, geom = "point", main = "Factor map")
+```
+Kmeans
+```{r}
+set.seed(123)
+km.res <- kmeans(t, 3, nstart = 25)
+# 3. Visualize
+library("factoextra")
+fviz_cluster(km.res, data = t[,1:2],
+             palette = c("#00AFBB","#2E9FDF", "#E7B800", "#FC4E07"),
+             ggtheme = theme_minimal(),
+             main = "Partitioning Clustering Plot",
+             geom = c("point")
+             )
+```
+
+
+
+```{r}
+groupe1 = Polluant$Formldehyde[which(km.res$cluster[(Polluant$Idn_lieu)]==1)]
+groupe2 = Polluant$Formldehyde[which(km.res$cluster[(Polluant$Idn_lieu)]==2)]
+groupe3= Polluant$Formldehyde[which(km.res$cluster[(Polluant$Idn_lieu)]==3)]
+hist(groupe1,breaks=20,xlab = "Formaldehyde en microgrammes/m3")
+hist(groupe2,breaks=20,xlab = "Formaldehyde en microgrammes/m3")
+hist(groupe3,breaks=20,xlab = "Formaldehyde en microgrammes/m3")
+
+```
+
+```{r}
+hist(groupe1,breaks=20,xlab = "Formaldehyde en microgrammes/m3")
+hist(groupe2,breaks=20,xlab = "Formaldehyde en microgrammes/m3")
+hist(groupe3,breaks=20,xlab = "Formaldehyde en microgrammes/m3")
+```
+
+
+
+
+```{r}
+summary(groupe1)
+summary(groupe2)
+summary(groupe3)
+
+```
+
+```{r}
+boxplot(f1,f2,f3)
+
+```
+
+
+```{r}
+groupe1bis = Polluant$benzene[which(km.res$cluster[(Polluant$Idn_lieu)]==1)]
+groupe2bis = Polluant$benzene[which(km.res$cluster[(Polluant$Idn_lieu)]==2)]
+groupe3bis= Polluant$benzene[which(km.res$cluster[(Polluant$Idn_lieu)]==3)]
+hist(groupe1bis,breaks=20,xlab = "Benzene en microgrammes/m3")
+hist(groupe2bis,breaks=20,xlab = "Benzene en microgrammes/m3")
+hist(groupe3bis,breaks=20,xlab = "Benzene en microgrammes/m3")
+```
+#Étude formaldehyde
+##Création des sous-ensembles
+
+```{r}
+t <- read.csv("~/Bureau/Etude de cas 1/t.txt")
+```
+
+```{r}
+G_study= merge(t, Polluant.5[,c(1,2,6)], by.x = "Id.lieu", by.y ="Idn_lieu")
+
+```
+
+```{r}
+G_1studyfor= subset(G_study, km.res$cluster[(G_study$Id.lieu)]==1)
+G_1studyfor$benzene<-NULL
+G_2studyfor= subset(G_study, km.res$cluster[(G_study$Id.lieu)]==2)
+G_2studyfor$benzene<-NULL
+G_3studyfor= subset(G_study, km.res$cluster[(G_study$Id.lieu)]==3)
+G_3studyfor$benzene<-NULL
+```
+##Sélection des varaibles 
+```{r}
+model <- lm(G_1studyfor[,c(64)]~ ., data = G_1studyfor[,-c(1,64)])
+K<-ols_step_both_p(model, details=TRUE)
+```
+
+```{r}
+plot(K)
+```
+```{r}
+model <- lm(G_2studyfor[,c(64)]~ ., data = G_2studyfor[,-c(1,64)])
+K<-ols_step_both_p(model, details=TRUE)
+plot(K)
+```
+```{r}
+model <- lm(G_3studyfor[,c(64)]~ ., data = G_3studyfor[,-c(1,64)])
+K<-ols_step_both_p(model, details=TRUE)
+plot(K)
+```
+##Modèles
+###SVM
+```{r}
+msvm1<-svm(G_1studyfor[,c(64)]~ Dim.14+ Dim.47+ Dim.13+ Dim.23 +Dim.16+Dim.52+Dim.19+Dim.38   , data=G_1studyfor[,-c(1,64)], kernel="radial",scale=T)
+```
+```{r}
+print(msvm1)
+ygrid = predict(msvm1,G_1studyfor[,-c(1,64)])
+```
+```{r}
+t<- rmse(G_1studyfor[,c(64)],ygrid)
+```
+
+
+
+```{r}
+msvm2<-svm(G_2studyfor[,c(64)]~., data=G_2studyfor[,-c(1,64)], kernel="radial",scale=T)
+```
+```{r}
+print(msvm2)
+ygrid = predict(msvm2,G_2studyfor[,-c(1,64)])
+t<- rmse(G_2studyfor[,c(64)],ygrid)
+print(t)
+```
+
+```{r}
+msvm3<-svm(G_3studyfor[,c(64)]~., data=G_3studyfor[,-c(1,64)], kernel="polynomial",scale=T)
+```
+```{r}
+print(msvm3)
+ygrid = predict(msvm3,G_3studyfor[,-c(1,64)])
+t<- rmse(G_3studyfor[,c(64)],ygrid)
+print(t)
+```
+###Reglin
+```{r}
+reglin1<-lm(G_1studyfor[,c(64)]~., data=G_1studyfor[,-c(1,64)])
+```
+```{r}
+print(reglin1)
+ygrid = predict(reglin1,G_1studyfor[,-c(1,64)])
+t<- rmse(G_1studyfor[,c(64)],ygrid)
+print(t)
+```
+```{r}
+reglin2<-lm(G_2studyfor[,c(64)]~., data=G_2studyfor[,-c(1,64)])
+```
+```{r}
+print(reglin1)
+ygrid = predict(reglin2,G_2studyfor[,-c(1,64)])
+t<- rmse(G_2studyfor[,c(64)],ygrid)
+print(t)
+```
+
+```{r}
+reglin3<-lm(G_3studyfor[,c(64)]~., data=G_3studyfor[,-c(1,64)])
+```
+```{r}
+print(reglin3)
+ygrid = predict(reglin3,G_3studyfor[,-c(1,64)])
+t<- rmse(G_3studyfor[,c(64)],ygrid)
+print(t)
+```
+
+###Kpp
+```{r}
+mkpp1<-knnreg(G_1studyfor[,-c(1,64)], test = NULL, G_1studyfor[,c(64)], k = 5, use.all=T)
+```
+```{r}
+print(mkpp1)
+ygrid = predict(mkpp1,G_1studyfor[,-c(1,64)])
+t<- rmse(G_1studyfor[,c(64)],ygrid)
+print(t)
+```
+```{r}
+mkpp2<-knnreg(G_2studyfor[,-c(1,64)], test = NULL, G_2studyfor[,c(64)], k = 5, use.all=T)
+```
+```{r}
+print(mkpp2)
+ygrid = predict(mkpp2,G_2studyfor[,-c(1,64)])
+t<- rmse(G_2studyfor[,c(64)],ygrid)
+print(t)
+```
+```{r}
+mkpp3<-knnreg(G_3studyfor[,-c(1,64)], test = NULL, G_3studyfor[,c(64)], k = 5, use.all=T)
+```
+```{r}
+print(mkpp3)
+ygrid = predict(mkpp3,G_3studyfor[,-c(1,64)])
+t<- rmse(G_3studyfor[,c(64)],ygrid)
+print(t)
+```
+
+
+###logreg
+```{r}
+logreg1<-glm(G_1studyfor[,c(64)]~., data=G_1studyfor[,-c(1,64)])
+```
+```{r}
+print(logreg1)
+ygrid = predict(logreg1,G_1studyfor[,-c(1,64)])
+t<- rmse(G_1studyfor[,c(64)],ygrid)
+print(t)
+```
+
+
+```{r}
+logreg2<-glm(G_2studyfor[,c(64)]~., data=G_2studyfor[,-c(1,64)])
+```
+```{r}
+print(logreg2)
+ygrid = predict(logreg2,G_2studyfor[,-c(1,64)])
+t<- rmse(G_2studyfor[,c(64)],ygrid)
+print(t)
+```
+```{r}
+logreg3<-glm(G_3studyfor[,c(64)]~., data=G_3studyfor[,-c(1,64)])
+```
+```{r}
+print(logreg3)
+ygrid = predict(logreg3,G_3studyfor[,-c(1,64)])
+t<- rmse(G_3studyfor[,c(64)],ygrid)
+print(t)
+```
